@@ -1,43 +1,36 @@
-import express, { Request, Response } from "express";
-import bodyParser from "body-parser";
-import morgan from "morgan";
-import { ESLint } from 'eslint';
+import app from "./app.js";
+import dotenv from "dotenv";
+import { Request, Response } from "express";
+import connectDB from "./config/db.js";
 
-const app = express();
+dotenv.config();
+connectDB();
 
-const PORT = 5001;
-
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan("dev"));
-
-async function lintCode(codeSnippet: string) {
-    const eslint = new ESLint();
-    const results = await eslint.lintText(codeSnippet);
-    return results[0].messages;
-}
-
-app.get("/", async (req: Request, res: Response) => {
-
-    const data = await lintCode(`
-        function calculateSum(numbers) {
-            let sum = 0;
-            numbers.forEach((num) => {
-                sum += num;
-            });
-            return sum;
-        }
-    `);
-    console.log(data);
-
-    res.json({
-        success: true,
-        message: "Auth microservice is running successfully",
-        data,
-        version: "1.0.0"
-    });
+// Handling Uncaught Exception
+process.on("uncaughtException", (err: Error) => {
+    console.log(`Error: ${err.message}`);
+    console.log(`Shutting down the server due to Uncaught Exception`);
+    
+    process.exit(1);
 });
 
-app.listen(PORT, () => {
-    console.log(`Auth Microservice running on port ${PORT}`);
+app.get("/", (req: Request, res: Response) => {
+    res.status(200).json({
+        message: "Auth Service Working!"
+    })
+});
+
+const PORT = process.env.PORT || 5001;
+const server = app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// Unhandled Promise Rejection
+process.on("unhandledRejection", (err: any) => {
+    console.log(`Error: ${err.message}`);
+    console.log(`Shutting down the server due to Unhandled Promise Rejection`);
+
+    server.close(() => {
+        process.exit(1);
+    });
 });
